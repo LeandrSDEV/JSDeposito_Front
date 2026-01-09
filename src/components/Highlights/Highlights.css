@@ -1,0 +1,25 @@
+.highlights {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.highlight-card {
+  height: 160px;
+  border-radius: 14px;
+  padding: 1.5rem;
+  color: white;
+  font-size: 1.4rem;
+  font-weight: bold;
+  display: flex;
+  align-items: flex-end;
+}
+
+.primary {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.secondary {
+  background: linear-gradient(135deg, #16a34a, #14532d);
+}

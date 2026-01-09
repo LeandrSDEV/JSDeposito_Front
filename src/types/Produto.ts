@@ -3,4 +3,8 @@ export interface Produto {
   nome: string
   preco: number
   estoque: number
+
+  // flags futuras (podem vir da API depois)
+  emPromocao?: boolean
+  destaque?: boolean
 }
