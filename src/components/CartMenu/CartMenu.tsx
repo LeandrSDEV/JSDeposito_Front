@@ -1,5 +1,7 @@
 import { useCart } from '../../contexts/CartContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './CartMenu.css'
 
 interface Props {
@@ -8,7 +10,20 @@ interface Props {
 
 export default function CartMenu({ onClose }: Props) {
   const { items, total, aplicarCupom, limparCarrinho } = useCart()
+  const { usuarioId } = useAuth()
   const [cupom, setCupom] = useState('')
+  const navigate = useNavigate()
+
+  function handleFinalizarPedido() {
+    if (!usuarioId) {
+      // 🔹 usuário não logado → redireciona para login
+      navigate('/login', { replace: true })
+    } else {
+      // 🔹 usuário logado → redireciona para checkout
+      navigate('/checkout')
+    }
+    onClose() // opcional: fecha o menu
+  }
 
   return (
     <div className="cart-menu">
@@ -45,7 +60,7 @@ export default function CartMenu({ onClose }: Props) {
 
           <div className="actions">
             <button onClick={limparCarrinho}>Limpar carrinho</button>
-            <button onClick={() => alert('Finalizar pedido')}>Finalizar pedido</button>
+            <button onClick={handleFinalizarPedido}>Finalizar pedido</button>
           </div>
         </>
       )}
