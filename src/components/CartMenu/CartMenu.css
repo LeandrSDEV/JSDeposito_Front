@@ -1,53 +1,54 @@
-.cart-overlay {
-  position: fixed;
-  inset: 0;
-  background: transparent;
-  z-index: 998;
-}
-
 .cart-menu {
   position: fixed;
   top: 80px;
   right: 24px;
-  width: 360px;
-  max-height: 80vh;
-  background: #140b0b;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  width: 380px;
+  max-height: 85vh;
+  background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
   display: flex;
   flex-direction: column;
   z-index: 999;
-
-  animation: slideDown 0.25s ease;
+  animation: slideDown 0.3s ease;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+  from { opacity: 0; transform: translateY(-15px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .cart-header {
   display: flex;
   justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #eee;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
 }
 
-.cart-header button {
+.cart-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 24px;
+  color: #fff;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.close:hover {
+  transform: rotate(90deg);
 }
 
 .cart-content {
-  padding: 12px 16px;
+  padding: 16px 20px;
   overflow-y: auto;
   flex: 1;
 }
@@ -55,70 +56,124 @@
 .cart-item {
   display: flex;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transition: background 0.2s;
+}
+
+.cart-item:hover {
+  background: rgba(255,255,255,0.05);
 }
 
 .item-image {
-  width: 48px;
-  height: 48px;
-  border-radius: 6px;
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
   object-fit: cover;
-  background: #eee;
+  background: #333;
 }
 
-.item-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
+.item-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .item-info span {
-  color: #666;
+  font-size: 13px;
+  color: #ccc;
 }
 
 .item-price {
-  font-weight: bold;
+  font-weight: 600;
+  color: #0ff;
+  margin-top: 4px;
 }
 
 .cart-footer {
-  border-top: 1px solid #eee;
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.cart-footer input {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  gap: 12px;
+  border-top: 1px solid rgba(255,255,255,0.1);
 }
 
 .total {
   display: flex;
   justify-content: space-between;
   font-size: 16px;
+  font-weight: 600;
+  color: #0ff;
 }
 
-.actions {
+.cupom {
   display: flex;
   gap: 8px;
 }
 
-.actions button {
+.cupom input {
   flex: 1;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
+  border: none;
+  background: #222;
+  color: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+.cupom input::placeholder {
+  color: #aaa;
+}
+
+.cupom button.apply {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #0ff;
+  color: #000;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.cupom button.apply:hover {
+  background: #0cc;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 12px 0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,255,255,0.2);
 }
 
 .actions .checkout {
-  background: black;
-  color: white;
+  background: linear-gradient(135deg, #00ffff, #00aaff);
+  color: #000;
+  border: none;
 }
 
 .actions .clear {
-  background: #eee;
+  background: #444;
+  color: #fff;
+  border: none;
+}
+
+.empty-cart {
+    text-align: center;
+    font-size: 20px;
+    margin: 15px;
 }
