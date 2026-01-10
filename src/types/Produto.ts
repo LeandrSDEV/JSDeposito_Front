@@ -1,4 +1,5 @@
 export interface Produto {
+  imagemUrl: string
   id: number
   nome: string
   preco: number

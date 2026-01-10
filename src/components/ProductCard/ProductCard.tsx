@@ -13,6 +13,7 @@ export default function ProductCard({ produto }: Props) {
     <div className="card">
       <h3>{produto.nome}</h3>
       <p>R$ {produto.preco.toFixed(2)}</p>
+
       <button onClick={() => addToCart(produto)}>
         Adicionar ao carrinho
       </button>
