@@ -4,6 +4,9 @@ import Home from './pages/Home'
 import {CheckoutPage} from './pages/CheckoutPage'
 import AuthPage from './pages/AuthPage'
 import { CartProvider } from './contexts/CartContext'
+import { AuthProvider } from './contexts/AuthContext';
+
+
 
 function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
@@ -22,16 +25,18 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <CartProvider>
-      <Router>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/cadastro" element={<AuthPage />} />
-          </Routes>
-        </Layout>
-      </Router>
+      <AuthProvider>
+        <Router>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/cadastro" element={<AuthPage />} />
+            </Routes>
+          </Layout>
+        </Router>
+      </AuthProvider>
     </CartProvider>
   )
 }
