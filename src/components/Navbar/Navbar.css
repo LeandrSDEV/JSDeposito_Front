@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #553bec;
+  background: rgb(58, 75, 228);
   padding: 0.5rem 1rem;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
   position: relative;
