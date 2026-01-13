@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 import { type Produto } from '../types/Produto'
+import { useAuth } from './AuthContext'
 
 interface CartItem {
   produtoId: number
@@ -23,22 +24,69 @@ const CartContext = createContext<CartContextData>({} as CartContextData)
 const API = 'https://localhost:7200/api'
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { token, usuarioId } = useAuth()
+
   const [pedidoId, setPedidoId] = useState<number | null>(null)
   const [items, setItems] = useState<CartItem[]>([])
   const [total, setTotal] = useState(0)
+  const [sincronizado, setSincronizado] = useState(false)
 
-  async function criarPedidoSeNecessario(itens: { produtoId: number; quantidade: number }[] = []) {
-  if (pedidoId) return pedidoId
+  // 🔥 SINCRONIZA APÓS LOGIN
+  useEffect(() => {
+    if (!usuarioId || !token || sincronizado) return
 
-  const res = await fetch(`${API}/pedidos`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ itens }) // envia os itens iniciais
-  })
-  const data = await res.json()
-  setPedidoId(data.pedidoId)
-  return data.pedidoId
-}
+    async function sincronizarPedido() {
+      const res = await fetch(`${API}/pedidos/pedido-atual`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (res.status === 204) {
+        setSincronizado(true)
+        return
+      }
+
+      const pedido = await res.json()
+
+      setPedidoId(pedido.id)
+      setItems(
+        pedido.itens.map((i: any) => ({
+          produtoId: i.produtoId,
+          nome: i.nomeProduto,
+          precoUnitario: i.precoUnitario,
+          quantidade: i.quantidade,
+          subtotal: i.subtotal,
+          imagemUrl: i.imagemUrl || '',
+        }))
+      )
+      setTotal(pedido.total)
+      setSincronizado(true)
+    }
+
+    sincronizarPedido()
+  }, [usuarioId, token, sincronizado])
+
+  // ==============================
+  // 🔽 SEU CÓDIGO ORIGINAL
+  // ==============================
+
+  async function criarPedidoSeNecessario(
+    itens: { produtoId: number; quantidade: number }[] = []
+  ) {
+    if (pedidoId) return pedidoId
+
+    const res = await fetch(`${API}/pedidos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ itens }),
+    })
+    const data = await res.json()
+    setPedidoId(data.pedidoId)
+    return data.pedidoId
+  }
 
   async function carregarPedido(id: number) {
     const res = await fetch(`${API}/pedidos/${id}`)
@@ -51,49 +99,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         precoUnitario: i.precoUnitario,
         quantidade: i.quantidade,
         subtotal: i.subtotal,
-        imagemUrl: i.imagemUrl || '' // pegamos do front se existir
+        imagemUrl: i.imagemUrl || '',
       }))
     )
     setTotal(pedido.total)
   }
 
   async function addToCart(produto: Produto) {
-  const id = await criarPedidoSeNecessario([{ produtoId: produto.id, quantidade: 1 }])
+    const id = await criarPedidoSeNecessario([
+      { produtoId: produto.id, quantidade: 1 },
+    ])
 
-  const res = await fetch(`${API}/pedidos/${id}/itens`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ produtoId: produto.id, quantidade: 1 })
-  })
+    const res = await fetch(`${API}/pedidos/${id}/itens`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ produtoId: produto.id, quantidade: 1 }),
+    })
 
-  if (!res.ok) {
-    const error = await res.json()
-    alert(error.message) // Notifica o usuário
-    return
+    if (!res.ok) {
+      const error = await res.json()
+      alert(error.message)
+      return
+    }
+
+    await carregarPedido(id)
   }
-
-  await carregarPedido(id)
-}
 
   async function aplicarCupom(codigo: string) {
     if (!pedidoId) return
+
     await fetch(`${API}/pedidos/${pedidoId}/cupom`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigoCupom: codigo })
+      credentials: 'include',
+      body: JSON.stringify({ codigoCupom: codigo }),
     })
+
     await carregarPedido(pedidoId)
   }
 
   async function limparCarrinho() {
-  if (!pedidoId) return
+    if (!pedidoId) return
 
-  await fetch(`${API}/pedidos/${pedidoId}`, { method: 'DELETE' })
+    await fetch(`${API}/pedidos/${pedidoId}`, { method: 'DELETE' })
 
-  setPedidoId(null)
-  setItems([])
-  setTotal(0)
-}
+    setPedidoId(null)
+    setItems([])
+    setTotal(0)
+    setSincronizado(false)
+  }
 
   return (
     <CartContext.Provider

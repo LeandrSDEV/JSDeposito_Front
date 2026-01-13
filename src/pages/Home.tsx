@@ -4,6 +4,7 @@ import { type Produto } from '../types/Produto'
 import Highlights from '../components/Highlights/Highlights'
 import Promotions from '../components/Promotions/Promotions'
 import ProductGrid from '../components/ProductGrid/ProductGrid'
+import "./Home.css"
 
 export default function Home() {
   const [produtos, setProdutos] = useState<Produto[]>([])

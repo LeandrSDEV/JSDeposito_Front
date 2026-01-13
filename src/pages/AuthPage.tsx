@@ -1,146 +1,83 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
-import './AuthPage.css';
+import { useEffect, useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useNavigate, useLocation } from 'react-router-dom'
+import './AuthPage.css'
 
 export default function AuthPage() {
-  const { login } = useAuth();
+  const { login, usuarioId } = useAuth()
 
-  const [isLogin, setIsLogin] = useState(true); // true = login, false = cadastro
-  const [nome, setNome] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
-  const [senha, setSenha] = useState('');
-  const [error, setError] = useState('');
+  const [isLogin, setIsLogin] = useState(true)
+  const [nome, setNome] = useState('')
+  const [email, setEmail] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [senha, setSenha] = useState('')
+  const [error, setError] = useState('')
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const redirect = new URLSearchParams(location.search).get('redirect') || '/';
+  const navigate = useNavigate()
+  const location = useLocation()
+  const redirect = new URLSearchParams(location.search).get('redirect') || '/'
 
-  // ------------------ LOGIN ------------------
+  // 🔥 REDIRECT CONTROLADO
+  useEffect(() => {
+    if (usuarioId) {
+      navigate(redirect, { replace: true })
+    }
+  }, [usuarioId])
+
   async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+    e.preventDefault()
     try {
-      await login(email, senha); // usa o contexto AuthProvider
-      setError('');
-      navigate(redirect, { replace: true });
+      await login(email, senha)
+      setError('')
+      // ❌ NÃO navega aqui
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     }
   }
 
-  // ------------------ CADASTRO ------------------
   async function handleCadastro(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      if (!telefone) {
-        setError('Telefone é obrigatório.');
-        return;
-      }
+    e.preventDefault()
 
+    try {
       const res = await fetch('https://localhost:7200/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome,
-          email,
-          telefone,
-          senha,
-        }),
-      });
+        body: JSON.stringify({ nome, email, telefone, senha }),
+      })
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Erro ao cadastrar');
-      }
+      if (!res.ok) throw new Error('Erro ao cadastrar')
 
-      alert('Cadastro realizado com sucesso! Faça login.');
-
-      // Reseta campos e volta para login
-      setIsLogin(true);
-      setNome('');
-      setEmail('');
-      setTelefone('');
-      setSenha('');
-      setError('');
+      alert('Cadastro realizado com sucesso!')
+      setIsLogin(true)
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message)
     }
   }
 
-  // ------------------ RENDER ------------------
   return (
     <div className="auth-page">
       <div className="auth-card">
         <div className="tabs">
-          <button
-            className={isLogin ? 'active' : ''}
-            onClick={() => {
-              setIsLogin(true);
-              setError('');
-            }}
-          >
+          <button className={isLogin ? 'active' : ''} onClick={() => setIsLogin(true)}>
             Login
           </button>
-          <button
-            className={!isLogin ? 'active' : ''}
-            onClick={() => {
-              setIsLogin(false);
-              setError('');
-            }}
-          >
+          <button className={!isLogin ? 'active' : ''} onClick={() => setIsLogin(false)}>
             Cadastro
           </button>
         </div>
 
         {isLogin ? (
           <form onSubmit={handleLogin}>
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-            />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} />
             <button type="submit">Entrar</button>
           </form>
         ) : (
           <form onSubmit={handleCadastro}>
-            <input
-              type="text"
-              placeholder="Nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input
-              type="tel"
-              placeholder="Telefone"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Senha"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              required
-            />
+            <input value={nome} onChange={e => setNome(e.target.value)} />
+            <input value={email} onChange={e => setEmail(e.target.value)} />
+            <input value={telefone} onChange={e => setTelefone(e.target.value)} />
+            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} />
             <button type="submit">Cadastrar</button>
           </form>
         )}
@@ -148,5 +85,5 @@ export default function AuthPage() {
         {error && <p className="error">{error}</p>}
       </div>
     </div>
-  );
+  )
 }

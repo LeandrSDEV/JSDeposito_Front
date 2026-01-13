@@ -30,8 +30,9 @@ function Layout({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+    <AuthProvider>
     <CartProvider>
-      <AuthProvider>
+      
         <Router>
           <Layout>
             <Routes>
@@ -39,11 +40,12 @@ function App() {
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/login" element={<AuthPage />} />
               <Route path="/cadastro" element={<AuthPage />} />
+              <Route path="/contato" element={<AuthPage />} />
             </Routes>
           </Layout>
-        </Router>
-      </AuthProvider>
+        </Router>    
     </CartProvider>
+    </AuthProvider>
   )
 }
 

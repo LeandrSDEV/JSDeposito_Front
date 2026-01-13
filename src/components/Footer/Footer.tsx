@@ -7,9 +7,8 @@ export default function Footer() {
         <div className="footer-logo">JSDeposito</div>
 
         <nav className="footer-nav">
-          <a href="/about">Sobre</a>
-          <a href="/contact">Contato</a>
-          <a href="/help">Ajuda</a>
+          <a href="/sobre">Sobre</a>
+          <a href="/contato">Contato</a>
         </nav>
 
         <div className="footer-socials">

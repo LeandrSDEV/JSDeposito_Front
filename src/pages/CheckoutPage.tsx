@@ -1,43 +1,49 @@
-// CheckoutPage.tsx
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 export function CheckoutPage() {
   const { pedidoId, total } = useCart()
-  const { usuarioId, token } = useAuth()
+  const { token } = useAuth()
   const navigate = useNavigate()
 
-  async function finalizarPedido() {
-    if (!usuarioId) {
-      // 🔹 Redireciona direto para a página de login
-      navigate('/login', { replace: true })
+  async function handleFinalizar() {
+    if (!pedidoId) {
+      alert('Nenhum pedido encontrado.')
       return
     }
 
-    if (pedidoId) {
-      await fetch(`https://localhost:7200/api/pedidos/associar`, {
+    try {
+      await fetch(`https://localhost:7200/api/pedidos/${pedidoId}/finalizar`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          tokenAnonimo: localStorage.getItem('pedido_anonimo'),
-          usuarioId
-        })
+        credentials: 'include',
       })
-    }
 
-    // Redireciona para "Pedido finalizado"
-    navigate('/pedido-finalizado')
+      navigate('/pedido-finalizado', { replace: true })
+    } catch (err) {
+      console.error(err)
+      alert('Erro ao finalizar pedido')
+    }
   }
 
   return (
-    <div>
+    <div className="checkout-page">
       <h2>Resumo do Pedido</h2>
-      <p>Total: R$ {total.toFixed(2)}</p>
-      <button onClick={finalizarPedido}>Finalizar Pedido</button>
+
+      <p>
+        <strong>Nº do Pedido:</strong> {pedidoId}
+      </p>
+
+      <p>
+        <strong>Total:</strong> R$ {total.toFixed(2)}
+      </p>
+
+      <button onClick={handleFinalizar} disabled={!pedidoId}>
+        Finalizar Pedido
+      </button>
     </div>
   )
 }
