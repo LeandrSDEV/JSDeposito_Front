@@ -52,8 +52,22 @@ export default function AuthPage() {
 
   return (
     <div className="auth-page">
-      <div className="auth-card">
-        <div className="tabs">
+      <div className="auth-shell">
+        <div className="auth-hero card">
+          <div className="auth-tag">🛵 Depósito delivery</div>
+          <h1 className="auth-title">Entre e finalize em minutos.</h1>
+          <p className="auth-sub">
+            Uma experiência mais moderna, com pegada magazine/iFood: rápido, direto e com um carrinho sempre a um clique.
+          </p>
+          <ul className="auth-bullets">
+            <li>Checkout ágil</li>
+            <li>Tokens com refresh automático</li>
+            <li>UI com micro-interações</li>
+          </ul>
+        </div>
+
+        <div className="auth-card card">
+          <div className="tabs">
           <button
             type="button"
             className={isLogin ? 'active' : ''}
@@ -120,7 +134,8 @@ export default function AuthPage() {
           </form>
         )}
 
-        {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
+        </div>
       </div>
     </div>
   )

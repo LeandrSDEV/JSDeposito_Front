@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../contexts/ToastContext'
 import './CartMenu.css'
 
 interface Props {
@@ -10,12 +11,14 @@ interface Props {
 
 export default function CartMenu({ onClose }: Props) {
   const { itens, total, aplicarCupom, limparCarrinho, codigoCupom } = useCart()
+  const { push } = useToast()
   const { usuarioId } = useAuth()
   const [cupom, setCupom] = useState('')
   const navigate = useNavigate()
 
   function handleFinalizarPedido() {
     if (!usuarioId) {
+      push({ variant: 'info', title: 'Faça login', message: 'Entre para finalizar seu pedido' })
       navigate('/login?redirect=/checkout', { replace: true })
     } else {
       navigate('/checkout')
@@ -66,7 +69,10 @@ export default function CartMenu({ onClose }: Props) {
               />
               <button
                 className="apply"
-                onClick={() => aplicarCupom(cupom)}
+                onClick={async () => {
+                  await aplicarCupom(cupom)
+                  push({ variant: 'success', title: 'Cupom aplicado', message: `Cupom ${cupom.toUpperCase()} aplicado ✅` })
+                }}
                 disabled={!!codigoCupom || !cupom.trim()}
               >
                 Aplicar
@@ -74,7 +80,7 @@ export default function CartMenu({ onClose }: Props) {
             </div>
 
             <div className="actions">
-              <button className="clear" onClick={limparCarrinho}>
+              <button className="clear" onClick={async () => { await limparCarrinho(); push({ variant: 'info', title: 'Carrinho', message: 'Carrinho limpo' }) }}>
                 Limpar
               </button>
               <button className="checkout" onClick={handleFinalizarPedido}>

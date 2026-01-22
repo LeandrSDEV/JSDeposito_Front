@@ -1,4 +1,4 @@
-import { ShoppingCart, ChevronDown } from 'lucide-react'
+import { ShoppingCart, ChevronDown, Search, MapPin, Sparkles } from 'lucide-react'
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
@@ -15,6 +15,7 @@ export default function Navbar() {
 
   const [cartOpen, setCartOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [q, setQ] = useState('')
   const userMenuRef = useRef<HTMLDivElement | null>(null)
 
   const isLogged = Boolean(token)
@@ -40,44 +41,87 @@ export default function Navbar() {
     navigate('/')
   }
 
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const term = q.trim()
+    navigate(term ? `/?q=${encodeURIComponent(term)}` : '/')
+  }
+
   return (
     <header className="navbar">
-      <Link to="/" className="logo-link" aria-label="Ir para a vitrine">
-        <img src={logo} alt="Logo" className="logo" />
-      </Link>
+      <div className="navbar-inner container">
+        <Link to="/" className="logo-link" aria-label="Ir para a vitrine">
+          <img src={logo} alt="Logo" className="logo" />
+        </Link>
 
-      <Marquee />
-
-      <div className="actions">
-        <div className="cart" onClick={() => setCartOpen((v) => !v)} role="button">
-          <ShoppingCart />
-          <span>{itemCount}</span>
+        <div className="location" title="Endereço de entrega">
+          <MapPin size={18} />
+          <span>Entregar em</span>
+          <strong>Minha localização</strong>
         </div>
 
-        <div className="user" ref={userMenuRef}>
-          {isLogged ? (
-            <div
-              className="user-logged"
-              onClick={() => setUserMenuOpen((v) => !v)}
-              role="button"
-            >
-              <span>Minha conta</span>
-              <ChevronDown size={16} className="chevron" />
-            </div>
-          ) : (
-            <Link to="/login" className="login-icon">
-              Login
-            </Link>
-          )}
+        <form className="search" onSubmit={onSearch} role="search">
+          <Search size={18} className="search-ico" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Buscar cerveja, gelo, refrigerante..."
+            aria-label="Buscar produtos"
+          />
+          <button type="submit">Buscar</button>
+        </form>
 
-          {userMenuOpen && (
-            <div className="user-menu">
+        <div className="actions">
+          <button
+            className="cartBtn"
+            onClick={() => setCartOpen((v) => !v)}
+            aria-label="Abrir carrinho"
+          >
+            <ShoppingCart />
+            <span className="badge">{itemCount}</span>
+          </button>
+
+          <div className="user" ref={userMenuRef}>
+            {isLogged ? (
+              <button
+                className="user-logged"
+                onClick={() => setUserMenuOpen((v) => !v)}
+                aria-label="Abrir menu do usuário"
+              >
+                <span>Minha conta</span>
+                <ChevronDown size={16} className="chevron" />
+              </button>
+            ) : (
+              <Link to="/login" className="loginBtn">
+                Entrar
+              </Link>
+            )}
+
+            <div className={`user-menu ${userMenuOpen ? 'open' : ''}`}>
               <button onClick={() => alert('Configurações ainda não implementadas')}>
                 Configurações
               </button>
               <button onClick={handleLogout}>Sair</button>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+
+      <div className="navbar-sub container">
+        <div className="chips">
+          <a className="chip" href="#destaques">
+            <Sparkles size={16} /> Destaques
+          </a>
+          <a className="chip" href="#promocoes">
+            🔥 Promoções
+          </a>
+          <a className="chip" href="#produtos">
+            🧺 Todos os produtos
+          </a>
+        </div>
+
+        <div className="ticker">
+          <Marquee />
         </div>
       </div>
 

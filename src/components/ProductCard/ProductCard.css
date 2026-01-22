@@ -1,39 +1,127 @@
-.card {
-  background: white;
-  border-radius: 10px;
-  padding: 1.25rem;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+.pCard {
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: transform .15s ease;
+}
+
+.pCard:hover {
+  transform: translateY(-2px);
+}
+
+.pCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(340px 220px at 20% 0%, rgba(255, 176, 0, 0.14), transparent 60%),
+    radial-gradient(380px 240px at 90% 10%, rgba(255, 61, 46, 0.12), transparent 62%);
+  opacity: .9;
+}
+
+.pCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pTop {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  transition: transform 0.2s, box-shadow 0.2s;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+.pBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 12px;
 }
 
-.card h3 {
-  font-size: 1.1rem;
+.pStock {
+  color: var(--muted-2);
+  font-weight: 700;
+  font-size: 12px;
 }
 
-.card p {
-  font-weight: bold;
-  color: #16a34a;
+.pName {
+  margin-top: 10px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 
-.card button {
-  margin-top: auto;
-  padding: 0.5rem;
+.pBottom {
+  margin-top: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pLabel {
+  color: var(--muted-2);
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.pPrice {
+  margin-top: 4px;
+  font-weight: 900;
+  color: var(--accent-2);
+}
+
+.addBtn {
   border: none;
-  border-radius: 6px;
-  background: #2563eb;
-  color: white;
   cursor: pointer;
-  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px;
+  border-radius: 14px;
+  font-weight: 900;
+  color: #0b0f17;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  box-shadow: 0 12px 24px rgba(255, 61, 46, 0.18);
+  transition: transform .15s ease;
 }
 
-.card button:hover {
-  background: #1d4ed8;
+.addBtn:hover {
+  transform: translateY(-1px);
+}
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.05);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.qtyBtn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qtyBtn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+.qtyVal {
+  width: 38px;
+  text-align: center;
+  font-weight: 900;
 }

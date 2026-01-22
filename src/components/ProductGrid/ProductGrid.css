@@ -1,9 +1,41 @@
-.products h2 {
-  margin-bottom: 1rem;
+.products {
+  padding: 18px 0 34px;
+}
+
+.productsHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.productsTitle {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.productsSub {
+  color: var(--muted);
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1.5rem;
+  gap: 14px;
+}
+
+.empty {
+  margin-top: 14px;
+  padding: 18px;
+}
+
+.empty h3 {
+  font-weight: 900;
+}
+
+.empty p {
+  margin-top: 6px;
+  color: var(--muted);
 }

@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { api } from '../services/api'
 import axios from 'axios'
+import { clearTokens, getAccessToken, setTokens } from '../services/authTokens'
 
 export type PedidoConflito = {
   conflitoCarrinho: boolean
@@ -28,8 +29,24 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const STORAGE_TOKEN = 'token'
+// usuarioId é derivado do JWT (nameid)
 const STORAGE_USER_ID = 'usuarioId'
+
+function getUserIdFromJwt(token: string): number | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    const raw =
+      json?.nameid ??
+      json?.sub ??
+      json?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
@@ -38,11 +55,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [pedidoConflito, setPedidoConflito] = useState<PedidoConflito | null>(null)
 
   useEffect(() => {
-    const savedToken = localStorage.getItem(STORAGE_TOKEN)
+    const savedToken = getAccessToken()
     const savedUserId = localStorage.getItem(STORAGE_USER_ID)
 
-    if (savedToken) setToken(savedToken)
-    if (savedUserId && !Number.isNaN(Number(savedUserId))) {
+    if (savedToken) {
+      setToken(savedToken)
+      // tenta reidratar o usuarioId do JWT
+      const fromJwt = getUserIdFromJwt(savedToken)
+      if (fromJwt != null) {
+        setUsuarioId(fromJwt)
+        localStorage.setItem(STORAGE_USER_ID, String(fromJwt))
+      } else if (savedUserId && !Number.isNaN(Number(savedUserId))) {
+        setUsuarioId(Number(savedUserId))
+      }
+    } else if (savedUserId && !Number.isNaN(Number(savedUserId))) {
       setUsuarioId(Number(savedUserId))
     }
 
@@ -70,21 +96,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, senha: string) {
     const { data } = await api.post('/auth/login', { email, senha })
 
-    if (!data?.token || !data?.usuarioId) {
+    const access = data?.accessToken ?? data?.AccessToken ?? data?.token
+    const refresh = data?.refreshToken ?? data?.RefreshToken
+
+    if (!access || !refresh) {
       throw new Error('Resposta inválida do servidor de autenticação')
     }
 
-    localStorage.setItem(STORAGE_TOKEN, String(data.token))
-    localStorage.setItem(STORAGE_USER_ID, String(data.usuarioId))
+    setTokens(String(access), String(refresh))
+    setToken(String(access))
 
-    setToken(String(data.token))
-    setUsuarioId(Number(data.usuarioId))
+    const uid = getUserIdFromJwt(String(access))
+    if (uid != null) {
+      localStorage.setItem(STORAGE_USER_ID, String(uid))
+      setUsuarioId(uid)
+    }
 
     // associar-carrinho é disparado no useEffect acima
   }
 
   function logout() {
-    localStorage.removeItem(STORAGE_TOKEN)
+    clearTokens()
     localStorage.removeItem(STORAGE_USER_ID)
     setToken(null)
     setUsuarioId(null)
