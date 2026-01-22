@@ -1,97 +1,114 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { jwtDecode } from 'jwt-decode'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { api } from '../services/api'
+import axios from 'axios'
 
-interface JwtPayload {
-  'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier': string
-  'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress': string
+export type PedidoConflito = {
+  conflitoCarrinho: boolean
+  pedidoUsuarioId: number
+  pedidoAnonimoId: number
+  message?: string
 }
 
-interface AuthContextType {
-  usuarioId: string | null
-  usuarioNome: string | null
+type AuthContextType = {
   token: string | null
-  refreshToken: string | null
+  usuarioId: number | null
   loading: boolean
+  pedidoConflito: PedidoConflito | null
+  setPedidoConflito: (v: PedidoConflito | null) => void
   login: (email: string, senha: string) => Promise<void>
   logout: () => void
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType)
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+const STORAGE_TOKEN = 'token'
+const STORAGE_USER_ID = 'usuarioId'
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null)
-  const [refreshToken, setRefreshToken] = useState<string | null>(null)
-  const [usuarioId, setUsuarioId] = useState<string | null>(null)
-  const [usuarioNome, setUsuarioNome] = useState<string | null>(null)
+  const [usuarioId, setUsuarioId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [pedidoConflito, setPedidoConflito] = useState<PedidoConflito | null>(null)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    const storedRefresh = localStorage.getItem('refreshToken')
+    const savedToken = localStorage.getItem(STORAGE_TOKEN)
+    const savedUserId = localStorage.getItem(STORAGE_USER_ID)
 
-    if (storedToken) {
-      const decoded: JwtPayload = jwtDecode(storedToken)
-      setToken(storedToken)
-      setRefreshToken(storedRefresh)
-      setUsuarioId(
-        decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
-      )
-      setUsuarioNome(
-        decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'].split('@')[0]
-      )
+    if (savedToken) setToken(savedToken)
+    if (savedUserId && !Number.isNaN(Number(savedUserId))) {
+      setUsuarioId(Number(savedUserId))
     }
 
     setLoading(false)
   }, [])
 
+  // Sempre que estiver autenticado, tenta associar o carrinho anônimo (se existir cookie)
+  useEffect(() => {
+    if (!token || !usuarioId) return
+
+    ;(async () => {
+      try {
+        await api.post('/pedidos/associar-carrinho')
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 409) {
+          setPedidoConflito(err.response.data as PedidoConflito)
+          return
+        }
+        // silencioso: não impede uso do app
+        console.error(err)
+      }
+    })()
+  }, [token, usuarioId])
+
   async function login(email: string, senha: string) {
-    const res = await fetch('https://localhost:7200/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, senha })
-    })
+    const { data } = await api.post('/auth/login', { email, senha })
 
-    if (!res.ok) throw new Error('Credenciais inválidas')
+    if (!data?.token || !data?.usuarioId) {
+      throw new Error('Resposta inválida do servidor de autenticação')
+    }
 
-    const data = await res.json()
-    const decoded: JwtPayload = jwtDecode(data.accessToken)
+    localStorage.setItem(STORAGE_TOKEN, String(data.token))
+    localStorage.setItem(STORAGE_USER_ID, String(data.usuarioId))
 
-    setToken(data.accessToken)
-    setRefreshToken(data.refreshToken)
-    setUsuarioId(
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier']
-    )
-    setUsuarioNome(
-      decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'].split('@')[0]
-    )
+    setToken(String(data.token))
+    setUsuarioId(Number(data.usuarioId))
 
-    localStorage.setItem('token', data.accessToken)
-    localStorage.setItem('refreshToken', data.refreshToken)
-
-    await fetch('https://localhost:7200/api/pedidos/associar-carrinho', {
-    method: 'POST',
-    credentials: 'include'
-    })
+    // associar-carrinho é disparado no useEffect acima
   }
-
-  
 
   function logout() {
+    localStorage.removeItem(STORAGE_TOKEN)
+    localStorage.removeItem(STORAGE_USER_ID)
     setToken(null)
-    setRefreshToken(null)
     setUsuarioId(null)
-    setUsuarioNome(null)
-    localStorage.clear()
+    setPedidoConflito(null)
   }
 
-  return (
-    <AuthContext.Provider
-      value={{ usuarioId, usuarioNome, token, refreshToken, login, logout, loading }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      token,
+      usuarioId,
+      loading,
+      pedidoConflito,
+      setPedidoConflito,
+      login,
+      logout,
+    }),
+    [token, usuarioId, loading, pedidoConflito]
   )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export const useAuth = () => useContext(AuthContext)
+export function useAuth() {
+  const ctx = useContext(AuthContext)
+  if (!ctx) throw new Error('useAuth deve ser usado dentro de AuthProvider')
+  return ctx
+}

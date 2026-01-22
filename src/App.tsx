@@ -1,52 +1,40 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
-import Footer from './components/Footer/Footer'   // import Footer
+import Footer from './components/Footer/Footer'
 import Home from './pages/Home'
-import { CheckoutPage } from './pages/CheckoutPage'
 import AuthPage from './pages/AuthPage'
-import { CartProvider } from './contexts/CartContext'
-import { AuthProvider } from './contexts/AuthContext'
+import CheckoutPage from './pages/CheckoutPage'
+import Contato from './pages/Contato'
+import Sobre from './pages/Sobre'
+import ProtectedRoute from './services/ProtectedRoute'
+import PedidoFinalizadoPage from './pages/PedidoFinalizadoPage'
+import PedidoConflitoModal from './components/PedidoConflitoModal/PedidoConflitoModal'
 
-function Layout({ children }: { children: React.ReactNode }) {
-  const location = useLocation()
-
-  // Se a rota for /login ou /cadastro, não exibe a navbar
-  const hideNavbar = location.pathname === '/login' || location.pathname === '/cadastro'
-
-  // Se quiser esconder o footer nessas rotas, use:
-  // const hideFooter = hideNavbar
-
+export default function App() {
   return (
-    <>
-      {!hideNavbar && <Navbar />}
-      <main>{children}</main>
-      {/* Sempre exibe footer */}
+    <Router>
+      <Navbar />
+      <PedidoConflitoModal />
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<AuthPage />} />
+
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <CheckoutPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/pedido-finalizado" element={<PedidoFinalizadoPage />} />
+        <Route path="/contato" element={<Contato />} />
+        <Route path="/sobre" element={<Sobre />} />
+      </Routes>
+
       <Footer />
-      {/* Se quiser esconder o footer em login/cadastro: */}
-      {/* {!hideFooter && <Footer />} */}
-    </>
+    </Router>
   )
 }
-
-function App() {
-  return (
-    <AuthProvider>
-    <CartProvider>
-      
-        <Router>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/login" element={<AuthPage />} />
-              <Route path="/cadastro" element={<AuthPage />} />
-              <Route path="/contato" element={<AuthPage />} />
-            </Routes>
-          </Layout>
-        </Router>    
-    </CartProvider>
-    </AuthProvider>
-  )
-}
-
-export default App

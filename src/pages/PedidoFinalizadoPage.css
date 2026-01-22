@@ -1,0 +1,36 @@
+.pedido-finalizado {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 16px;
+}
+
+.pedido-finalizado .card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e7e7e7;
+  padding: 24px;
+}
+
+.pedido-finalizado p {
+  color: #444;
+}
+
+.pedido-finalizado .actions {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+}
+
+.pedido-finalizado button {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e7e7e7;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+}
+
+.pedido-finalizado button.secondary {
+  background: #fff;
+  color: #111;
+}

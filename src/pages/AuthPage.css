@@ -74,41 +74,21 @@
   font-weight: bold;
 }
 
-.modal-overlay {
+.modal-backdrop {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 999;
+  align-items: center;
 }
-
 .modal {
-  background: #fff;
-  padding: 24px;
+  background: white;
+  padding: 2rem;
   border-radius: 8px;
-  width: 90%;
-  max-width: 420px;
+  max-width: 400px;
   text-align: center;
 }
-
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-}
-
 .modal-actions button {
-  flex: 1;
-  padding: 10px;
-}
-
-button.danger {
-  background: #d32f2f;
-  color: #fff;
-}
-
-button.secondary {
-  background: #eee;
+  margin: 0 0.5rem;
 }

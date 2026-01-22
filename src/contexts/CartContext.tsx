@@ -1,162 +1,210 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { type Produto } from '../types/Produto'
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
+import { api } from '../services/api'
 import { useAuth } from './AuthContext'
+import axios from 'axios'
+import type { Produto } from '../types/Produto'
 
-interface CartItem {
+export type CartItem = {
   produtoId: number
   nome: string
-  precoUnitario: number
+  preco: number
   quantidade: number
   subtotal: number
-  imagemUrl: string
 }
 
-interface CartContextData {
+type EnderecoEntrega = {
+  rua: string
+  numero: string
+  bairro: string
+  cidade: string
+  latitude: number
+  longitude: number
+}
+
+type CartContextType = {
   pedidoId: number | null
-  items: CartItem[]
+  itens: CartItem[]
   total: number
+  desconto: number
+  valorFrete: number
+  fretePromocional: boolean
+  codigoCupom: string | null
+  enderecoEntrega: EnderecoEntrega | null
+  refreshPedido: () => Promise<void>
   addToCart: (produto: Produto) => Promise<void>
+  removeFromCart: (produtoId: number) => Promise<void>
+  alterarQuantidade: (produtoId: number, quantidade: number) => Promise<void>
   aplicarCupom: (codigo: string) => Promise<void>
   limparCarrinho: () => Promise<void>
+  resetarCarrinho: () => void
 }
 
-const CartContext = createContext<CartContextData>({} as CartContextData)
-const API = 'https://localhost:7200/api'
+const CartContext = createContext<CartContextType | undefined>(undefined)
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
-  const { token, usuarioId } = useAuth()
+function toNumber(v: any): number {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const { usuarioId } = useAuth()
 
   const [pedidoId, setPedidoId] = useState<number | null>(null)
-  const [items, setItems] = useState<CartItem[]>([])
+  const [itens, setItens] = useState<CartItem[]>([])
   const [total, setTotal] = useState(0)
-  const [sincronizado, setSincronizado] = useState(false)
+  const [desconto, setDesconto] = useState(0)
+  const [valorFrete, setValorFrete] = useState(0)
+  const [fretePromocional, setFretePromocional] = useState(false)
+  const [codigoCupom, setCodigoCupom] = useState<string | null>(null)
+  const [enderecoEntrega, setEnderecoEntrega] = useState<EnderecoEntrega | null>(null)
 
-  // 🔥 SINCRONIZA APÓS LOGIN
-  useEffect(() => {
-    if (!usuarioId || !token || sincronizado) return
-
-    async function sincronizarPedido() {
-      const res = await fetch(`${API}/pedidos/pedido-atual`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: 'include',
-      })
-
-      if (res.status === 204) {
-        setSincronizado(true)
-        return
-      }
-
-      const pedido = await res.json()
-
-      setPedidoId(pedido.id)
-      setItems(
-        pedido.itens.map((i: any) => ({
-          produtoId: i.produtoId,
-          nome: i.nomeProduto,
-          precoUnitario: i.precoUnitario,
-          quantidade: i.quantidade,
-          subtotal: i.subtotal,
-          imagemUrl: i.imagemUrl || '',
-        }))
-      )
-      setTotal(pedido.total)
-      setSincronizado(true)
-    }
-
-    sincronizarPedido()
-  }, [usuarioId, token, sincronizado])
-
-  // ==============================
-  // 🔽 SEU CÓDIGO ORIGINAL
-  // ==============================
-
-  async function criarPedidoSeNecessario(
-    itens: { produtoId: number; quantidade: number }[] = []
-  ) {
-    if (pedidoId) return pedidoId
-
-    const res = await fetch(`${API}/pedidos`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ itens }),
-    })
-    const data = await res.json()
-    setPedidoId(data.pedidoId)
-    return data.pedidoId
+  function resetarCarrinho() {
+    setPedidoId(null)
+    setItens([])
+    setTotal(0)
+    setDesconto(0)
+    setValorFrete(0)
+    setFretePromocional(false)
+    setCodigoCupom(null)
+    setEnderecoEntrega(null)
   }
 
   async function carregarPedido(id: number) {
-    const res = await fetch(`${API}/pedidos/${id}`)
-    const pedido = await res.json()
+    const { data } = await api.get(`/pedidos/${id}`)
 
-    setItems(
-      pedido.itens.map((i: any) => ({
-        produtoId: i.produtoId,
-        nome: i.nomeProduto,
-        precoUnitario: i.precoUnitario,
-        quantidade: i.quantidade,
-        subtotal: i.subtotal,
-        imagemUrl: i.imagemUrl || '',
-      }))
-    )
-    setTotal(pedido.total)
+    setPedidoId(data.id)
+
+    const novosItens: CartItem[] = (data.itens ?? []).map((i: any) => ({
+      produtoId: toNumber(i.produtoId ?? i.ProdutoId),
+      nome: String(i.nomeProduto ?? i.NomeProduto ?? ''),
+      preco: toNumber(i.precoUnitario ?? i.PrecoUnitario),
+      quantidade: toNumber(i.quantidade ?? i.Quantidade),
+      subtotal: toNumber(i.subtotal ?? i.Subtotal),
+    }))
+
+    setItens(novosItens)
+    setTotal(toNumber(data.total ?? data.Total))
+    setDesconto(toNumber(data.desconto ?? data.Desconto))
+    setValorFrete(toNumber(data.valorFrete ?? data.ValorFrete))
+    setFretePromocional(Boolean(data.fretePromocional ?? data.FretePromocional))
+    setCodigoCupom((data.codigoCupom ?? data.CodigoCupom) || null)
+    setEnderecoEntrega((data.enderecoEntrega ?? data.EnderecoEntrega) || null)
+  }
+
+  async function refreshPedido() {
+    if (!pedidoId) return
+    await carregarPedido(pedidoId)
+  }
+
+  async function criarPedidoSeNecessario(): Promise<number> {
+    if (pedidoId) return pedidoId
+
+    // Se usuário estiver logado, tenta pegar pedido aberto
+    if (usuarioId) {
+      const res = await api.get('/pedidos/pedido-atual', {
+        validateStatus: (s) => (s >= 200 && s < 300) || s === 204,
+      })
+
+      if (res.status === 200 && res.data?.id) {
+        await carregarPedido(res.data.id)
+        return res.data.id
+      }
+    }
+
+    // Cria (ou recupera) pedido anônimo pelo cookie
+    const { data } = await api.post('/pedidos', {})
+    if (!data?.pedidoId) throw new Error('Falha ao criar pedido')
+
+    await carregarPedido(data.pedidoId)
+    return data.pedidoId
   }
 
   async function addToCart(produto: Produto) {
-    const id = await criarPedidoSeNecessario([
-      { produtoId: produto.id, quantidade: 1 },
-    ])
+    try {
+      const id = await criarPedidoSeNecessario()
 
-    const res = await fetch(`${API}/pedidos/${id}/itens`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ produtoId: produto.id, quantidade: 1 }),
-    })
+      await api.post(`/pedidos/${id}/itens`, {
+        produtoId: produto.id,
+        quantidade: 1,
+      })
 
-    if (!res.ok) {
-      const error = await res.json()
-      alert(error.message)
-      return
+      await carregarPedido(id)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const msg = (err.response?.data as any)?.message
+        if (msg) throw new Error(msg)
+      }
+      throw err
     }
+  }
 
-    await carregarPedido(id)
+  async function removeFromCart(produtoId: number) {
+    if (!pedidoId) return
+
+    await api.delete(`/pedidos/${pedidoId}/produtos/${produtoId}`)
+    await carregarPedido(pedidoId)
+  }
+
+  async function alterarQuantidade(produtoId: number, quantidade: number) {
+    if (!pedidoId) return
+
+    await api.put(`/pedidos/${pedidoId}/itens/${produtoId}`, { quantidade })
+    await carregarPedido(pedidoId)
   }
 
   async function aplicarCupom(codigo: string) {
-    if (!pedidoId) return
-
-    await fetch(`${API}/pedidos/${pedidoId}/cupom`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ codigoCupom: codigo }),
-    })
-
-    await carregarPedido(pedidoId)
+    const id = await criarPedidoSeNecessario()
+    await api.post(`/pedidos/${id}/cupom`, { codigoCupom: codigo })
+    await carregarPedido(id)
   }
 
   async function limparCarrinho() {
     if (!pedidoId) return
-
-    await fetch(`${API}/pedidos/${pedidoId}`, { method: 'DELETE' })
-
-    setPedidoId(null)
-    setItems([])
-    setTotal(0)
-    setSincronizado(false)
+    await api.delete(`/pedidos/${pedidoId}`)
+    resetarCarrinho()
   }
 
-  return (
-    <CartContext.Provider
-      value={{ pedidoId, items, total, addToCart, aplicarCupom, limparCarrinho }}
-    >
-      {children}
-    </CartContext.Provider>
+  const value = useMemo(
+    () => ({
+      pedidoId,
+      itens,
+      total,
+      desconto,
+      valorFrete,
+      fretePromocional,
+      codigoCupom,
+      enderecoEntrega,
+      refreshPedido,
+      addToCart,
+      removeFromCart,
+      alterarQuantidade,
+      aplicarCupom,
+      limparCarrinho,
+      resetarCarrinho,
+    }),
+    [
+      pedidoId,
+      itens,
+      total,
+      desconto,
+      valorFrete,
+      fretePromocional,
+      codigoCupom,
+      enderecoEntrega,
+    ]
   )
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>
 }
 
-export const useCart = () => useContext(CartContext)
+export function useCart() {
+  const ctx = useContext(CartContext)
+  if (!ctx) throw new Error('useCart deve ser usado dentro de CartProvider')
+  return ctx
+}

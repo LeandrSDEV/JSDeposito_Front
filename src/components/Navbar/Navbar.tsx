@@ -1,66 +1,73 @@
-import { ShoppingCart, ChevronDown } from 'lucide-react';
-import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { useState, useRef, useEffect } from 'react';
-import CartMenu from '../CartMenu/CartMenu';
-import './Navbar.css';
-import logo from '../../assets/logo.jpeg';
-import Marquee from '../Marquee/Marquee';
+import { ShoppingCart, ChevronDown } from 'lucide-react'
+import { useMemo, useRef, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useCart } from '../../contexts/CartContext'
+import { useAuth } from '../../contexts/AuthContext'
+import CartMenu from '../CartMenu/CartMenu'
+import Marquee from '../Marquee/Marquee'
+import logo from '../../assets/logo.jpeg'
+import './Navbar.css'
 
 export default function Navbar() {
-  const { items } = useCart();
-  const { usuarioNome, logout } = useAuth();
-  const [cartOpen, setCartOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { itens } = useCart()
+  const { token, logout } = useAuth()
+  const navigate = useNavigate()
 
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const [cartOpen, setCartOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
 
-  // Fecha o menu de usuário ao clicar fora
+  const isLogged = Boolean(token)
+
+  const itemCount = useMemo(() => {
+    return itens.reduce((sum, i) => sum + (i.quantidade || 0), 0)
+  }, [itens])
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false);
+    function onDocClick(e: MouseEvent) {
+      if (!userMenuRef.current) return
+      if (!userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
 
-  // Função para logout
   function handleLogout() {
-    logout();
-    setUserMenuOpen(false);
-  }
-
-  // Função para clicar no login/nome
-  function handleUserClick() {
-    setUserMenuOpen(!userMenuOpen);
+    logout()
+    setUserMenuOpen(false)
+    navigate('/')
   }
 
   return (
     <header className="navbar">
-      <img src={logo} alt="Logo" className="logo" />
+      <Link to="/" className="logo-link" aria-label="Ir para a vitrine">
+        <img src={logo} alt="Logo" className="logo" />
+      </Link>
 
       <Marquee />
 
       <div className="actions">
-        {/* Carrinho */}
-        <div className="cart" onClick={() => setCartOpen(!cartOpen)}>
+        <div className="cart" onClick={() => setCartOpen((v) => !v)} role="button">
           <ShoppingCart />
-          <span>{items.length}</span>
+          <span>{itemCount}</span>
         </div>
 
-        {/* Usuário / Login */}
         <div className="user" ref={userMenuRef}>
-          {usuarioNome ? (
-            <div className="user-logged" onClick={handleUserClick}>
-              <span>{usuarioNome}</span>
+          {isLogged ? (
+            <div
+              className="user-logged"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              role="button"
+            >
+              <span>Minha conta</span>
               <ChevronDown size={16} className="chevron" />
             </div>
           ) : (
-            <a href="/login" className="login-icon">
+            <Link to="/login" className="login-icon">
               Login
-            </a>
+            </Link>
           )}
 
           {userMenuOpen && (
@@ -76,5 +83,5 @@ export default function Navbar() {
 
       {cartOpen && <CartMenu onClose={() => setCartOpen(false)} />}
     </header>
-  );
+  )
 }

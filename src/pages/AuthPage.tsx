@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { api } from '../services/api'
+import axios from 'axios'
 import './AuthPage.css'
 
 export default function AuthPage() {
@@ -17,40 +19,34 @@ export default function AuthPage() {
   const location = useLocation()
   const redirect = new URLSearchParams(location.search).get('redirect') || '/'
 
-  // 🔥 REDIRECT CONTROLADO
   useEffect(() => {
-    if (usuarioId) {
-      navigate(redirect, { replace: true })
-    }
-  }, [usuarioId])
+    if (usuarioId) navigate(redirect, { replace: true })
+  }, [usuarioId, navigate, redirect])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     try {
       await login(email, senha)
       setError('')
-      // ❌ NÃO navega aqui
     } catch (err: any) {
-      setError(err.message)
+      setError(err?.message ?? 'Falha ao autenticar')
     }
   }
 
   async function handleCadastro(e: React.FormEvent) {
     e.preventDefault()
-
     try {
-      const res = await fetch('https://localhost:7200/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome, email, telefone, senha }),
-      })
-
-      if (!res.ok) throw new Error('Erro ao cadastrar')
-
+      await api.post('/auth/register', { nome, email, telefone, senha })
       alert('Cadastro realizado com sucesso!')
       setIsLogin(true)
-    } catch (err: any) {
-      setError(err.message)
+      setError('')
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const msg = (err.response?.data as any)?.message
+        setError(msg || 'Erro ao cadastrar')
+        return
+      }
+      setError('Erro ao cadastrar')
     }
   }
 
@@ -58,26 +54,68 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="tabs">
-          <button className={isLogin ? 'active' : ''} onClick={() => setIsLogin(true)}>
+          <button
+            type="button"
+            className={isLogin ? 'active' : ''}
+            onClick={() => setIsLogin(true)}
+          >
             Login
           </button>
-          <button className={!isLogin ? 'active' : ''} onClick={() => setIsLogin(false)}>
+          <button
+            type="button"
+            className={!isLogin ? 'active' : ''}
+            onClick={() => setIsLogin(false)}
+          >
             Cadastro
           </button>
         </div>
 
         {isLogin ? (
           <form onSubmit={handleLogin}>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Entrar</button>
           </form>
         ) : (
           <form onSubmit={handleCadastro}>
-            <input value={nome} onChange={e => setNome(e.target.value)} />
-            <input value={email} onChange={e => setEmail(e.target.value)} />
-            <input value={telefone} onChange={e => setTelefone(e.target.value)} />
-            <input type="password" value={senha} onChange={e => setSenha(e.target.value)} />
+            <input
+              placeholder="Nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input
+              placeholder="Telefone"
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              required
+            />
             <button type="submit">Cadastrar</button>
           </form>
         )}
