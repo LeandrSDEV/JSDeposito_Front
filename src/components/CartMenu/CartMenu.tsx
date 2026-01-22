@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
+import { Minus, Plus, Trash2 } from 'lucide-react'
+import fallbackImg from '../../assets/itaipava.jpg'
 import './CartMenu.css'
 
 interface Props {
@@ -10,7 +12,7 @@ interface Props {
 }
 
 export default function CartMenu({ onClose }: Props) {
-  const { itens, total, aplicarCupom, limparCarrinho, codigoCupom } = useCart()
+  const { itens, total, aplicarCupom, limparCarrinho, codigoCupom, alterarQuantidade, removeFromCart } = useCart()
   const { push } = useToast()
   const { usuarioId } = useAuth()
   const [cupom, setCupom] = useState('')
@@ -43,14 +45,50 @@ export default function CartMenu({ onClose }: Props) {
         <>
           <div className="cart-content">
             {itens.map((item) => (
-              <div className="cart-item" key={item.produtoId}>
-                <div className="item-info">
-                  <h4>{item.nome}</h4>
-                  <span>Quantidade: {item.quantidade}</span>
-                  <span className="item-price">R$ {item.subtotal.toFixed(2)}</span>
-                </div>
-              </div>
-            ))}
+  <div className="cart-item" key={item.produtoId}>
+    <img className="cart-item-img" src={fallbackImg} alt={item.nome} />
+    <div className="item-info">
+      <h4>{item.nome}</h4>
+      <span className="item-price">R$ {item.subtotal.toFixed(2)}</span>
+
+      <div className="cart-item-actions">
+        <div className="qtyMini" aria-label="Quantidade">
+          <button
+            className="qtyBtn"
+            onClick={async () => {
+              const next = Math.max(0, item.quantidade - 1)
+              if (next === 0) await removeFromCart(item.produtoId)
+              else await alterarQuantidade(item.produtoId, next)
+            }}
+            aria-label="Diminuir"
+          >
+            <Minus size={16} />
+          </button>
+          <div className="qtyVal">{item.quantidade}</div>
+          <button
+            className="qtyBtn"
+            onClick={() => alterarQuantidade(item.produtoId, item.quantidade + 1)}
+            aria-label="Aumentar"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+
+        <button
+          className="removeOne"
+          onClick={async () => {
+            await removeFromCart(item.produtoId)
+            push({ variant: 'info', title: 'Removido', message: `${item.nome} saiu do carrinho` })
+          }}
+          aria-label="Remover item"
+          title="Remover item"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  </div>
+))}
           </div>
 
           <div className="cart-footer">
@@ -70,8 +108,13 @@ export default function CartMenu({ onClose }: Props) {
               <button
                 className="apply"
                 onClick={async () => {
-                  await aplicarCupom(cupom)
-                  push({ variant: 'success', title: 'Cupom aplicado', message: `Cupom ${cupom.toUpperCase()} aplicado ✅` })
+                  try {
+                    await aplicarCupom(cupom)
+                    push({ variant: 'success', title: 'Cupom aplicado', message: `Cupom ${cupom.toUpperCase()} aplicado ✅` })
+                  } catch (e: any) {
+                    const msg = e?.message || 'Cupom inválido ou expirado'
+                    push({ variant: 'danger', title: 'Cupom inválido', message: msg })
+                  }
                 }}
                 disabled={!!codigoCupom || !cupom.trim()}
               >

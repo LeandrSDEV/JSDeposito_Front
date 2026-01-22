@@ -2,6 +2,7 @@ import { type Produto } from '../../types/Produto'
 import { useCart } from '../../contexts/CartContext'
 import { useToast } from '../../contexts/ToastContext'
 import { Minus, Plus, Sparkles } from 'lucide-react'
+import fallbackImg from '../../assets/itaipava.jpg'
 import './ProductCard.css'
 
 interface Props {
@@ -19,6 +20,10 @@ export default function ProductCard({ produto }: Props) {
       <div className="pTop">
         <div className="pBadge"><Sparkles size={14} /> Em alta</div>
         <div className="pStock">Estoque: {produto.estoque}</div>
+      </div>
+
+      <div className="pImgWrap">
+        <img className="pImg" src={produto.imagemUrl || fallbackImg} alt={produto.nome} />
       </div>
 
       <h3 className="pName">{produto.nome}</h3>

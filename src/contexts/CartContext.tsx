@@ -3,6 +3,7 @@ import {
   useContext,
   useMemo,
   useState,
+  useEffect,
   type ReactNode,
 } from 'react'
 import { api } from '../services/api'
@@ -42,6 +43,7 @@ type CartContextType = {
   alterarQuantidade: (produtoId: number, quantidade: number) => Promise<void>
   aplicarCupom: (codigo: string) => Promise<void>
   limparCarrinho: () => Promise<void>
+  aplicarFreteLocalizacao: (endereco: EnderecoEntrega) => Promise<void>
   resetarCarrinho: () => void
 }
 
@@ -64,7 +66,50 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [codigoCupom, setCodigoCupom] = useState<string | null>(null)
   const [enderecoEntrega, setEnderecoEntrega] = useState<EnderecoEntrega | null>(null)
 
-  function resetarCarrinho() {
+  
+
+
+// Se o usuário definir um endereço enquanto anônimo e depois fizer login,
+// persistimos esse endereço automaticamente na conta (1x por sessão).
+useEffect(() => {
+  if (!usuarioId) return
+  if (!enderecoEntrega) return
+
+  const key = `enderecoPersistido:${usuarioId}:${pedidoId ?? 'none'}`
+  if (sessionStorage.getItem(key) === '1') return
+
+  ;(async () => {
+    try {
+      const { data } = await api.get<any[]>('/enderecos')
+      const jaExiste =
+        Array.isArray(data) &&
+        data.some(
+          (e) =>
+            Number(e.latitude) === Number(enderecoEntrega.latitude) &&
+            Number(e.longitude) === Number(enderecoEntrega.longitude) &&
+            String(e.rua ?? '').trim().toLowerCase() ===
+              String(enderecoEntrega.rua ?? '').trim().toLowerCase()
+        )
+
+      if (!jaExiste) {
+        await api.post('/enderecos', {
+          rua: enderecoEntrega.rua || 'Minha localização',
+          numero: enderecoEntrega.numero || 'S/N',
+          bairro: enderecoEntrega.bairro || '',
+          cidade: enderecoEntrega.cidade || '',
+          latitude: enderecoEntrega.latitude,
+          longitude: enderecoEntrega.longitude,
+        })
+      }
+
+      sessionStorage.setItem(key, '1')
+    } catch {
+      // silencioso
+    }
+  })()
+}, [usuarioId, enderecoEntrega, pedidoId])
+
+function resetarCarrinho() {
     setPedidoId(null)
     setItens([])
     setTotal(0)
@@ -137,7 +182,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await carregarPedido(id)
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const msg = (err.response?.data as any)?.message
+        const status = err.response?.status
+        const msg = (err.response?.data as any)?.message as string | undefined
+
+        // Se o pedido atual foi finalizado/excluído no backend, recria e tenta novamente
+        if (status === 404 || (msg && /pedido (não encontrado|invalido|inválido|não pode ser alterado)/i.test(msg))) {
+          resetarCarrinho()
+          const id = await criarPedidoSeNecessario()
+          await api.post(`/pedidos/${id}/itens`, { produtoId: produto.id, quantidade: 1 })
+          await carregarPedido(id)
+          return
+        }
+
         if (msg) throw new Error(msg)
       }
       throw err
@@ -164,11 +220,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
     await carregarPedido(id)
   }
 
-  async function limparCarrinho() {
-    if (!pedidoId) return
-    await api.delete(`/pedidos/${pedidoId}`)
-    resetarCarrinho()
-  }
+  
+
+async function aplicarFreteLocalizacao(endereco: EnderecoEntrega) {
+  const id = await criarPedidoSeNecessario()
+  await api.post(`/pedidos/${id}/frete-localizacao`, endereco)
+  await carregarPedido(id)
+}
+
+async function limparCarrinho() {
+  if (!pedidoId) return
+  // mantém o pedido ativo (e o cookie anônimo), limpando apenas os itens
+  await api.delete(`/pedidos/${pedidoId}/itens`)
+  await carregarPedido(pedidoId)
+}
 
   const value = useMemo(
     () => ({
@@ -185,6 +250,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeFromCart,
       alterarQuantidade,
       aplicarCupom,
+      aplicarFreteLocalizacao,
       limparCarrinho,
       resetarCarrinho,
     }),

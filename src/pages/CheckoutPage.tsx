@@ -28,7 +28,7 @@ function stepIndex(s: Step) {
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { usuarioId } = useAuth()
+  const { usuarioId} = useAuth()
   const { push } = useToast()
 
   const {
@@ -42,6 +42,7 @@ export default function CheckoutPage() {
     enderecoEntrega,
     refreshPedido,
     limparCarrinho,
+    aplicarFreteLocalizacao,
   } = useCart()
 
   const [step, setStep] = useState<Step>('resumo')
@@ -54,6 +55,9 @@ export default function CheckoutPage() {
   const [novoNumero, setNovoNumero] = useState('')
   const [novoBairro, setNovoBairro] = useState('')
   const [novoCidade, setNovoCidade] = useState('')
+const [novoLat, setNovoLat] = useState<number | null>(null)
+const [novoLng, setNovoLng] = useState<number | null>(null)
+const [geoLoading, setGeoLoading] = useState(false)
 
   const subtotalItens = useMemo(() => {
     return itens.reduce((acc, i) => acc + (Number(i.subtotal) || 0), 0)
@@ -62,17 +66,15 @@ export default function CheckoutPage() {
   const totalFinal = useMemo(() => Number(total) || 0, [total])
 
   const canProceedResumo = Boolean(pedidoId) && itens.length > 0
-  const canProceedEndereco = Boolean(selectedEnderecoId)
+  const canProceedEndereco = usuarioId ? Boolean(selectedEnderecoId) : (novoLat != null && novoLng != null)
 
   useEffect(() => {
-    if (!pedidoId) {
-      navigate('/', { replace: true })
-      return
-    }
-    if (!usuarioId) {
-      navigate('/login?redirect=/checkout', { replace: true })
-    }
-  }, [pedidoId, usuarioId, navigate])
+  if (!pedidoId) {
+    navigate('/', { replace: true })
+    return
+  }
+  // NÃO força login aqui — permite endereço/frete anônimo
+}, [pedidoId, navigate])
 
   async function carregarEnderecos() {
     setLoadingEnderecos(true)
@@ -94,6 +96,12 @@ export default function CheckoutPage() {
   }, [step])
 
   async function criarEndereco() {
+    if (!usuarioId) {
+      push({ variant: 'info', title: 'Faça login', message: 'Entre para salvar endereços na sua conta.' })
+      navigate('/login?redirect=/checkout', { replace: true })
+      return
+    }
+
     setErr('')
     try {
       await api.post('/enderecos', {
@@ -119,34 +127,69 @@ export default function CheckoutPage() {
   }
 
   async function aplicarFrete() {
-    if (!pedidoId || !selectedEnderecoId) {
-      setErr('Selecione um endereço')
-      return
-    }
+  if (!pedidoId) return
 
-    setErr('')
-    try {
+  setErr('')
+  try {
+    // Logado: usa endereço salvo
+    if (usuarioId) {
+      if (!selectedEnderecoId) {
+        setErr('Selecione um endereço')
+        return
+      }
       await api.post(`/pedidos/${pedidoId}/frete/${selectedEnderecoId}`)
       await refreshPedido()
       setStep('confirmacao')
       push({ variant: 'success', title: 'Frete calculado', message: 'Frete aplicado ao seu pedido ✅' })
-    } catch (e) {
-      if (axios.isAxiosError(e)) {
-        const msg = (e.response?.data as any)?.message
-        setErr(msg || 'Erro ao aplicar frete')
-        return
-      }
-      setErr('Erro ao aplicar frete')
+      return
     }
+
+    // Anônimo: usa "Minha localização" (lat/lng) + campos livres
+    if (novoLat == null || novoLng == null) {
+      setErr('Use "Minha localização" para calcular o frete')
+      return
+    }
+
+    await aplicarFreteLocalizacao({
+      rua: novoRua || 'Minha localização',
+      numero: novoNumero || 'S/N',
+      bairro: novoBairro || '',
+      cidade: novoCidade || '',
+      latitude: novoLat,
+      longitude: novoLng,
+    })
+
+    setStep('confirmacao')
+    push({ variant: 'success', title: 'Frete calculado', message: 'Frete aplicado ao seu pedido ✅' })
+  } catch (e) {
+    if (axios.isAxiosError(e)) {
+      const msg = (e.response?.data as any)?.message
+      setErr(msg || 'Erro ao aplicar frete')
+      return
+    }
+    setErr('Erro ao aplicar frete')
+  }
+}
+
+async function finalizar() {
+  if (!pedidoId) return
+
+  // aqui sim: exige login
+  if (!usuarioId) {
+    push({
+      variant: 'info',
+      title: 'Entre para finalizar',
+      message: 'Faça login para concluir o pedido.',
+    })
+    navigate('/login?redirect=/checkout', { replace: true })
+    return
   }
 
-  async function finalizar() {
-    if (!pedidoId) return
-    setErr('')
-    try {
-      await api.post(`/checkout/${pedidoId}/finalizar`)
-      push({ variant: 'success', title: 'Pedido enviado', message: 'Seu pedido foi finalizado ✅' })
-      navigate('/pedido-finalizado', { replace: true })
+  setErr('')
+  try {
+    await api.post(`/checkout/${pedidoId}/finalizar`)
+    push({ variant: 'success', title: 'Pedido enviado', message: 'Seu pedido foi finalizado ✅' })
+    navigate('/pedido-finalizado', { replace: true })
     } catch (e) {
       if (axios.isAxiosError(e)) {
         const msg = (e.response?.data as any)?.message
@@ -282,55 +325,107 @@ export default function CheckoutPage() {
                 </div>
               ) : (
                 <>
-                  <div className="addressList">
-                    {enderecos.length === 0 ? (
-                      <div className="emptyHint">Nenhum endereço cadastrado. Cadastre um novo abaixo.</div>
-                    ) : (
-                      enderecos.map((e) => (
-                        <label key={e.id} className={`addrItem ${selectedEnderecoId === e.id ? 'selected' : ''}`}>
-                          <input
-                            type="radio"
-                            name="endereco"
-                            checked={selectedEnderecoId === e.id}
-                            onChange={() => setSelectedEnderecoId(e.id)}
-                          />
-                          <div className="addrTxt">
-                            <div className="addrLine">{e.rua}, {e.numero}</div>
-                            <div className="addrSub">{e.bairro} • {e.cidade}</div>
-                          </div>
-                        </label>
-                      ))
-                    )}
-                  </div>
+                  {!usuarioId ? (
+                    <div className="anonAddr">
+                      <div className="anonTitle">Minha localização</div>
+                      <p className="anonHint">
+                        Você pode informar o endereço e calcular o frete mesmo sem login.
+                        Ao entrar, este endereço é salvo automaticamente na sua conta.
+                      </p>
 
-                  <div className="newAddr">
-                    <div className="newAddrTop">Novo endereço</div>
-                    <div className="newAddrGrid">
-                      <input placeholder="Rua" value={novoRua} onChange={(e) => setNovoRua(e.target.value)} />
-                      <input placeholder="Número" value={novoNumero} onChange={(e) => setNovoNumero(e.target.value)} />
-                      <input placeholder="Bairro" value={novoBairro} onChange={(e) => setNovoBairro(e.target.value)} />
-                      <input placeholder="Cidade" value={novoCidade} onChange={(e) => setNovoCidade(e.target.value)} />
-                    </div>
-                    <div className="newAddrActions">
-                      <button
-                        className="btnGhost"
-                        type="button"
-                        onClick={criarEndereco}
-                        disabled={!novoRua || !novoNumero || !novoBairro || !novoCidade}
-                      >
-                        Salvar endereço
-                      </button>
-                    </div>
-                  </div>
+                      <div className="anonActions">
+                        <button
+                          type="button"
+                          className="btnGhost"
+                          disabled={geoLoading}
+                          onClick={() => {
+                            setErr('')
+                            setGeoLoading(true)
+                            if (!navigator.geolocation) {
+                              setGeoLoading(false)
+                              setErr('Seu navegador não suporta geolocalização')
+                              return
+                            }
+                            navigator.geolocation.getCurrentPosition(
+                              (pos) => {
+                                setNovoLat(pos.coords.latitude)
+                                setNovoLng(pos.coords.longitude)
+                                setGeoLoading(false)
+                                push({ variant: 'success', title: 'Localização capturada', message: 'Agora podemos calcular o frete ✅' })
+                              },
+                              () => {
+                                setGeoLoading(false)
+                                setErr('Não foi possível obter sua localização. Verifique as permissões.')
+                              },
+                              { enableHighAccuracy: true, timeout: 10000 }
+                            )
+                          }}
+                        >
+                          {geoLoading ? 'Obtendo...' : 'Usar minha localização'}
+                        </button>
+                      </div>
 
-                  <div className="panelActions">
-                    <button className="btnGhost" onClick={() => setStep('resumo')} type="button">
-                      Voltar
-                    </button>
-                    <button className="btnPrimary" onClick={aplicarFrete} type="button" disabled={!canProceedEndereco}>
-                      Calcular frete
-                    </button>
-                  </div>
+                      <div className="newAddrGrid">
+                        <input placeholder="Rua (opcional)" value={novoRua} onChange={(e) => setNovoRua(e.target.value)} />
+                        <input placeholder="Número (opcional)" value={novoNumero} onChange={(e) => setNovoNumero(e.target.value)} />
+                        <input placeholder="Bairro (opcional)" value={novoBairro} onChange={(e) => setNovoBairro(e.target.value)} />
+                        <input placeholder="Cidade (opcional)" value={novoCidade} onChange={(e) => setNovoCidade(e.target.value)} />
+                      </div>
+
+                      <div className="coords">
+                        <span>Lat: {novoLat ?? '-'}</span>
+                        <span>Lng: {novoLng ?? '-'}</span>
+                      </div>
+
+                      <div className="panelActions">
+                        <button className="btnPrimary" onClick={aplicarFrete} type="button">
+                          Calcular frete
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="addressList">
+                        {enderecos.length === 0 ? (
+                          <div className="emptyHint">Nenhum endereço cadastrado. Cadastre um novo abaixo.</div>
+                        ) : (
+                          enderecos.map((e) => (
+                            <label key={e.id} className={`addrItem ${selectedEnderecoId === e.id ? 'selected' : ''}`}>
+                              <input
+                                type="radio"
+                                name="endereco"
+                                checked={selectedEnderecoId === e.id}
+                                onChange={() => setSelectedEnderecoId(e.id)}
+                              />
+                              <div className="addrTxt">
+                                <div className="addrLine">{e.rua}, {e.numero}</div>
+                                <div className="addrSub">{e.bairro} • {e.cidade}</div>
+                              </div>
+                            </label>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="newAddr">
+                        <div className="newAddrTop">Novo endereço</div>
+                        <div className="newAddrGrid">
+                          <input placeholder="Rua" value={novoRua} onChange={(e) => setNovoRua(e.target.value)} />
+                          <input placeholder="Número" value={novoNumero} onChange={(e) => setNovoNumero(e.target.value)} />
+                          <input placeholder="Bairro" value={novoBairro} onChange={(e) => setNovoBairro(e.target.value)} />
+                          <input placeholder="Cidade" value={novoCidade} onChange={(e) => setNovoCidade(e.target.value)} />
+                        </div>
+
+                        <div className="panelActions split">
+                          <button className="btnGhost" onClick={criarEndereco} type="button">
+                            Salvar endereço
+                          </button>
+                          <button className="btnPrimary" onClick={aplicarFrete} type="button" disabled={!canProceedEndereco}>
+                            Calcular frete
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -430,4 +525,4 @@ export default function CheckoutPage() {
       </div>
     </div>
   )
-}
+};

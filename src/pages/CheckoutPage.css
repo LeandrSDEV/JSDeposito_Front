@@ -423,3 +423,10 @@
   display:grid;
   gap: 10px;
 }
+
+
+.anonAddr{padding:14px;border:1px dashed rgba(255,255,255,.18);border-radius:18px;background:rgba(255,255,255,.04);}
+.anonTitle{font-weight:900;margin-bottom:6px;}
+.anonHint{opacity:.85;margin:0 0 12px 0;line-height:1.35;}
+.anonActions{display:flex;gap:10px;margin-bottom:12px;}
+.coords{display:flex;gap:12px;opacity:.85;font-size:12px;margin-top:10px;}

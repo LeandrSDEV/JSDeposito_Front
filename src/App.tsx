@@ -6,7 +6,6 @@ import AuthPage from './pages/AuthPage'
 import CheckoutPage from './pages/CheckoutPage'
 import Contato from './pages/Contato'
 import Sobre from './pages/Sobre'
-import ProtectedRoute from './services/ProtectedRoute'
 import PedidoFinalizadoPage from './pages/PedidoFinalizadoPage'
 import PedidoConflitoModal from './components/PedidoConflitoModal/PedidoConflitoModal'
 
@@ -19,16 +18,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<AuthPage />} />
-
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <CheckoutPage />
-            </ProtectedRoute>
-          }
-        />
-
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/pedido-finalizado" element={<PedidoFinalizadoPage />} />
         <Route path="/contato" element={<Contato />} />
         <Route path="/sobre" element={<Sobre />} />
