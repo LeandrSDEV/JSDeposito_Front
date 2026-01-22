@@ -8,7 +8,12 @@ import {
 } from 'react'
 import { api } from '../services/api'
 import axios from 'axios'
-import { clearTokens, getAccessToken, setTokens } from '../services/authTokens'
+import {
+  clearTokens,
+  getAccessToken,
+  onTokensChange,
+  setTokens,
+} from '../services/authTokens'
 
 export type PedidoConflito = {
   conflitoCarrinho: boolean
@@ -73,6 +78,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(false)
+  }, [])
+
+  // Mantém o estado do React sincronizado com mudanças de token feitas fora do React
+  // (ex.: axios interceptor que faz refresh/clear).
+  useEffect(() => {
+    return onTokensChange(() => {
+      const t = getAccessToken()
+      setToken(t)
+      if (!t) {
+        localStorage.removeItem(STORAGE_USER_ID)
+        setUsuarioId(null)
+        setPedidoConflito(null)
+        return
+      }
+
+      const uid = getUserIdFromJwt(t)
+      if (uid != null) {
+        localStorage.setItem(STORAGE_USER_ID, String(uid))
+        setUsuarioId(uid)
+      }
+    })
   }, [])
 
   // Sempre que estiver autenticado, tenta associar o carrinho anônimo (se existir cookie)

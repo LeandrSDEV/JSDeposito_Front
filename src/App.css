@@ -1,8 +1,10 @@
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+.appShell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-button {
-  cursor: pointer;
+.appMain {
+  flex: 1;
+  display: block;
 }

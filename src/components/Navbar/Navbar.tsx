@@ -1,4 +1,4 @@
-import { ShoppingCart, ChevronDown, Search, MapPin, Sparkles } from 'lucide-react'
+import { ShoppingCart, ChevronDown, Search, Sparkles } from 'lucide-react'
 import { useMemo, useRef, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
@@ -54,11 +54,7 @@ export default function Navbar() {
           <img src={logo} alt="Logo" className="logo" />
         </Link>
 
-        <div className="location" title="Endereço de entrega">
-          <MapPin size={18} />
-          <span>Entregar em</span>
-          <strong>Minha localização</strong>
-        </div>
+        {/* Removido: "Entregar em / Minha localização" fica apenas dentro do checkout */}
 
         <form className="search" onSubmit={onSearch} role="search">
           <Search size={18} className="search-ico" />

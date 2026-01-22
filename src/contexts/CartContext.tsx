@@ -1,9 +1,9 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
-  useEffect,
   type ReactNode,
 } from 'react'
 import { api } from '../services/api'
@@ -49,6 +49,8 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
+const STORAGE_PEDIDO_ID = 'pedidoId'
+
 function toNumber(v: any): number {
   const n = Number(v)
   return Number.isFinite(n) ? n : 0
@@ -66,50 +68,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [codigoCupom, setCodigoCupom] = useState<string | null>(null)
   const [enderecoEntrega, setEnderecoEntrega] = useState<EnderecoEntrega | null>(null)
 
-  
-
-
-// Se o usuário definir um endereço enquanto anônimo e depois fizer login,
-// persistimos esse endereço automaticamente na conta (1x por sessão).
-useEffect(() => {
-  if (!usuarioId) return
-  if (!enderecoEntrega) return
-
-  const key = `enderecoPersistido:${usuarioId}:${pedidoId ?? 'none'}`
-  if (sessionStorage.getItem(key) === '1') return
-
-  ;(async () => {
-    try {
-      const { data } = await api.get<any[]>('/enderecos')
-      const jaExiste =
-        Array.isArray(data) &&
-        data.some(
-          (e) =>
-            Number(e.latitude) === Number(enderecoEntrega.latitude) &&
-            Number(e.longitude) === Number(enderecoEntrega.longitude) &&
-            String(e.rua ?? '').trim().toLowerCase() ===
-              String(enderecoEntrega.rua ?? '').trim().toLowerCase()
-        )
-
-      if (!jaExiste) {
-        await api.post('/enderecos', {
-          rua: enderecoEntrega.rua || 'Minha localização',
-          numero: enderecoEntrega.numero || 'S/N',
-          bairro: enderecoEntrega.bairro || '',
-          cidade: enderecoEntrega.cidade || '',
-          latitude: enderecoEntrega.latitude,
-          longitude: enderecoEntrega.longitude,
-        })
-      }
-
-      sessionStorage.setItem(key, '1')
-    } catch {
-      // silencioso
-    }
-  })()
-}, [usuarioId, enderecoEntrega, pedidoId])
-
-function resetarCarrinho() {
+  function resetarCarrinho() {
     setPedidoId(null)
     setItens([])
     setTotal(0)
@@ -118,12 +77,31 @@ function resetarCarrinho() {
     setFretePromocional(false)
     setCodigoCupom(null)
     setEnderecoEntrega(null)
+    localStorage.removeItem(STORAGE_PEDIDO_ID)
   }
+
+  // Reidrata pedido após refresh (evita o "pedido antigo juntar" depois)
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_PEDIDO_ID)
+    const id = stored ? Number(stored) : NaN
+    if (!Number.isFinite(id) || id <= 0) return
+
+    ;(async () => {
+      try {
+        await carregarPedido(id)
+      } catch {
+        // cookie pode ter expirado / pedido não existe mais
+        localStorage.removeItem(STORAGE_PEDIDO_ID)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function carregarPedido(id: number) {
     const { data } = await api.get(`/pedidos/${id}`)
 
     setPedidoId(data.id)
+    localStorage.setItem(STORAGE_PEDIDO_ID, String(data.id))
 
     const novosItens: CartItem[] = (data.itens ?? []).map((i: any) => ({
       produtoId: toNumber(i.produtoId ?? i.ProdutoId),
@@ -162,7 +140,7 @@ function resetarCarrinho() {
       }
     }
 
-    // Cria (ou recupera) pedido anônimo pelo cookie
+    // Cria (ou recupera) pedido anônimo pelo cookie (HttpOnly)
     const { data } = await api.post('/pedidos', {})
     if (!data?.pedidoId) throw new Error('Falha ao criar pedido')
 
@@ -182,18 +160,7 @@ function resetarCarrinho() {
       await carregarPedido(id)
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const status = err.response?.status
-        const msg = (err.response?.data as any)?.message as string | undefined
-
-        // Se o pedido atual foi finalizado/excluído no backend, recria e tenta novamente
-        if (status === 404 || (msg && /pedido (não encontrado|invalido|inválido|não pode ser alterado)/i.test(msg))) {
-          resetarCarrinho()
-          const id = await criarPedidoSeNecessario()
-          await api.post(`/pedidos/${id}/itens`, { produtoId: produto.id, quantidade: 1 })
-          await carregarPedido(id)
-          return
-        }
-
+        const msg = (err.response?.data as any)?.message
         if (msg) throw new Error(msg)
       }
       throw err
@@ -220,20 +187,18 @@ function resetarCarrinho() {
     await carregarPedido(id)
   }
 
-  
+  async function limparCarrinho() {
+    if (!pedidoId) return
+    // mantém o pedido ativo (pedido continua existindo, apenas sem itens)
+    await api.delete(`/pedidos/${pedidoId}/itens`)
+    await carregarPedido(pedidoId)
+  }
 
-async function aplicarFreteLocalizacao(endereco: EnderecoEntrega) {
-  const id = await criarPedidoSeNecessario()
-  await api.post(`/pedidos/${id}/frete-localizacao`, endereco)
-  await carregarPedido(id)
-}
-
-async function limparCarrinho() {
-  if (!pedidoId) return
-  // mantém o pedido ativo (e o cookie anônimo), limpando apenas os itens
-  await api.delete(`/pedidos/${pedidoId}/itens`)
-  await carregarPedido(pedidoId)
-}
+  async function aplicarFreteLocalizacao(endereco: EnderecoEntrega) {
+    const id = await criarPedidoSeNecessario()
+    await api.post(`/pedidos/${id}/frete-localizacao`, endereco)
+    await carregarPedido(id)
+  }
 
   const value = useMemo(
     () => ({
@@ -250,8 +215,8 @@ async function limparCarrinho() {
       removeFromCart,
       alterarQuantidade,
       aplicarCupom,
-      aplicarFreteLocalizacao,
       limparCarrinho,
+      aplicarFreteLocalizacao,
       resetarCarrinho,
     }),
     [
