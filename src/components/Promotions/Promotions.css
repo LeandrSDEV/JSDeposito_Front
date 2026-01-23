@@ -1,138 +1,125 @@
 .promotions {
-  padding: 18px 0 6px;
+  padding: 18px 0 10px;
 }
 
-.promoHeader {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.promoTitle {
-  font-size: 18px;
-  font-weight: 900;
-  letter-spacing: -0.01em;
-}
-
-.promoSub {
-  margin-top: 4px;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
-.promoPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.04);
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.promoList {
+.bannerWrap {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(220px, 1fr);
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 10px;
-  scroll-snap-type: x mandatory;
-}
-
-.promoCard {
-  padding: 16px;
-  scroll-snap-align: start;
-  position: relative;
-  overflow: hidden;
-  transition: transform .15s ease;
-}
-
-.promoCard:hover {
-  transform: translateY(-2px);
-}
-
-.promoCard::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(320px 180px at 30% 10%, rgba(255, 61, 46, 0.22), transparent 62%);
-  opacity: .9;
-}
-
-.promoCard > * {
-  position: relative;
-  z-index: 1;
-}
-
-.promoBadge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 900;
-  font-size: 12px;
-  padding: 8px 10px;
-  border-radius: 999px;
-  background: rgba(255, 61, 46, 0.16);
-  border: 1px solid rgba(255, 61, 46, 0.22);
-  color: var(--text);
-}
-
-.promoName {
-  margin-top: 10px;
-  font-weight: 900;
-  line-height: 1.2;
-}
-
-.promoRow {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 10px;
 }
 
-.promoPrice {
-  font-weight: 900;
-  color: var(--accent-2);
+/* VIEWPORT */
+.bannerViewport {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  cursor: grab;
+  user-select: none;
 }
 
-.promoAdd {
+.bannerViewport.isDragging {
+  cursor: grabbing;
+}
+
+.bannerTrack {
+  display: flex;
+  transition: transform 420ms ease;
+  will-change: transform;
+}
+
+.bannerSlide {
+  width: 100%;
+  flex: 0 0 100%;
+  position: relative;
+}
+
+/* “altura de banner” responsiva */
+.bannerLink {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: clamp(170px, 24vw, 340px);
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.bannerImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transform: scale(1.02);
+}
+
+/* glow moderno por cima */
+.bannerGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(680px 220px at 20% 20%, rgba(255, 61, 46, 0.22), transparent 60%),
+    radial-gradient(520px 220px at 80% 30%, rgba(120, 200, 255, 0.18), transparent 55%),
+    linear-gradient(to top, rgba(0,0,0,0.38), rgba(0,0,0,0.06));
+  pointer-events: none;
+}
+
+/* ARROWS */
+.bannerArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
   width: 44px;
   height: 44px;
   border-radius: 14px;
   border: 1px solid var(--border);
-  background: rgba(255,255,255,0.06);
+  background: rgba(0,0,0,0.32);
   color: var(--text);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: transform .15s ease, background .15s ease, opacity .15s ease;
+  backdrop-filter: blur(8px);
+}
+
+.bannerArrow:hover {
+  transform: translateY(-50%) scale(1.03);
+  background: rgba(0,0,0,0.42);
+}
+
+.bannerArrow.left { left: 12px; }
+.bannerArrow.right { right: 12px; }
+
+/* DOTS */
+.bannerDots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bannerDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.10);
+  cursor: pointer;
   transition: transform .15s ease, background .15s ease;
 }
 
-.promoAdd:hover {
-  transform: translateY(-1px);
-  background: rgba(255,255,255,0.09);
+.bannerDot:hover {
+  transform: scale(1.08);
 }
 
-
-.promoMedia {
-  width: 100%;
-  height: 110px;
-  margin-top: 10px;
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(0,0,0,0.35);
-  border: 1px solid var(--border);
+.bannerDot.active {
+  background: rgba(255,255,255,0.28);
 }
 
-.promoImg {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* Mobile: setas menores */
+@media (max-width: 520px) {
+  .bannerArrow {
+    width: 40px;
+    height: 40px;
+    border-radius: 13px;
+  }
 }

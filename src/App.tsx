@@ -8,6 +8,7 @@ import Contato from './pages/Contato'
 import Sobre from './pages/Sobre'
 import ProtectedRoute from './services/ProtectedRoute'
 import PedidoFinalizadoPage from './pages/PedidoFinalizadoPage'
+import PagamentoPage from './pages/PagamentoPage'
 import PedidoConflitoModal from './components/PedidoConflitoModal/PedidoConflitoModal'
 import './App.css'
 
@@ -33,6 +34,15 @@ export default function App() {
         />
 
             <Route path="/pedido-finalizado" element={<PedidoFinalizadoPage />} />
+
+            <Route
+              path="/pagamento/:pedidoId"
+              element={
+                <ProtectedRoute>
+                  <PagamentoPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/contato" element={<Contato />} />
             <Route path="/sobre" element={<Sobre />} />
           </Routes>

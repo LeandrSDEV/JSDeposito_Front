@@ -35,20 +35,7 @@ export default function Highlights({ produtos }: Props) {
         </div>
       </div>
 
-      <div className="side">
-        {rest.map((p) => (
-          <div key={p.id} className="sideCard card">
-            <div>
-              <div className="sideTitle">Destaque</div>
-              <div className="sideName">{p.nome}</div>
-              <div className="sidePrice">R$ {p.preco.toFixed(2)}</div>
-            </div>
-            <button className="sideBtn" onClick={() => addToCart(p)}>
-              +
-            </button>
-          </div>
-        ))}
-      </div>
+      
     </section>
   )
 }

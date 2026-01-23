@@ -190,8 +190,10 @@ export default function CheckoutPage() {
     setFinishing(true)
     try {
       await api.post(`/checkout/${pedidoId}/finalizar`)
-      push({ variant: 'success', title: 'Pedido enviado', message: 'Seu pedido foi finalizado ✅' })
-      navigate('/pedido-finalizado', { replace: true })
+      // Cria (ou recria) o pagamento PIX e navega para a tela de pagamento
+      const { data: pagamento } = await api.post(`/pagamentos/${pedidoId}/pagamento`, { tipo: 1 })
+      push({ variant: 'success', title: 'Pedido confirmado', message: 'PIX gerado ✅' })
+      navigate(`/pagamento/${pedidoId}`, { replace: true, state: { pagamento } })
     } catch (e) {
       if (axios.isAxiosError(e)) {
         if (e.response?.status === 401 || e.response?.status === 403) {
