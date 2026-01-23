@@ -73,8 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else if (savedUserId && !Number.isNaN(Number(savedUserId))) {
         setUsuarioId(Number(savedUserId))
       }
-    } else if (savedUserId && !Number.isNaN(Number(savedUserId))) {
-      setUsuarioId(Number(savedUserId))
+    } else {
+      // ✅ Importante: sem token, não considera "usuarioId" válido (evita loop /login -> /)
+      localStorage.removeItem(STORAGE_USER_ID)
+      setUsuarioId(null)
+      setToken(null)
+      setPedidoConflito(null)
     }
 
     setLoading(false)

@@ -84,6 +84,7 @@
 
 .cartBtn {
   position: relative;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -228,6 +229,8 @@
   .location {
     display: none;
   }
+
+
   .search button {
     display: none;
   }

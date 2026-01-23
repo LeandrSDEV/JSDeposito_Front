@@ -1,6 +1,7 @@
 import { type Produto } from '../../types/Produto'
 import { Tag, Plus } from 'lucide-react'
 import { useCart } from '../../contexts/CartContext'
+import placeholder from '../../assets/itaipava.jpg'
 import './Promotions.css'
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 
 export default function Promotions({ produtos }: Props) {
   const { addToCart } = useCart()
-  const promocoes = produtos.filter(p => p.preco < 20).slice(0, 6)
+  const promocoes = produtos.filter((p) => p.preco < 20).slice(0, 6)
 
   if (!promocoes.length) return null
 
@@ -30,10 +31,25 @@ export default function Promotions({ produtos }: Props) {
         {promocoes.map((produto) => (
           <div key={produto.id} className="promoCard card" role="listitem">
             <div className="promoBadge">🔥 OFF</div>
+
+            <div className="promoMedia">
+              <img
+                className="promoImg"
+                src={produto.imagemUrl || placeholder}
+                alt={produto.nome}
+                loading="lazy"
+              />
+            </div>
+
             <div className="promoName">{produto.nome}</div>
+
             <div className="promoRow">
               <div className="promoPrice">R$ {produto.preco.toFixed(2)}</div>
-              <button className="promoAdd" onClick={() => addToCart(produto)} aria-label={`Adicionar ${produto.nome}`}>
+              <button
+                className="promoAdd"
+                onClick={() => addToCart(produto)}
+                aria-label={`Adicionar ${produto.nome}`}
+              >
                 <Plus size={18} />
               </button>
             </div>

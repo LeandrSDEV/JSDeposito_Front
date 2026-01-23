@@ -16,6 +16,7 @@ export default function CartMenu({ onClose }: Props) {
   const { token } = useAuth()
   const { push } = useToast()
   const [cupom, setCupom] = useState('')
+  const [pendingProdutoId, setPendingProdutoId] = useState<number | null>(null)
   const navigate = useNavigate()
 
   function handleFinalizarPedido() {
@@ -55,7 +56,17 @@ export default function CartMenu({ onClose }: Props) {
                   <div className="item-qty">
                     <button
                       className="qty-btn"
-                      onClick={() => alterarQuantidade(item.produtoId, Math.max(0, item.quantidade - 1))}
+                      onClick={async () => {
+                        try {
+                          setPendingProdutoId(item.produtoId)
+                          await alterarQuantidade(item.produtoId, Math.max(0, item.quantidade - 1))
+                        } catch (e: any) {
+                          push({ variant: 'error', title: 'Carrinho', message: e?.message ?? 'Não foi possível alterar a quantidade.' })
+                        } finally {
+                          setPendingProdutoId(null)
+                        }
+                      }}
+                      disabled={pendingProdutoId === item.produtoId}
                       aria-label="Diminuir"
                     >
                       <Minus size={18} />
@@ -63,7 +74,17 @@ export default function CartMenu({ onClose }: Props) {
                     <div className="qty-val">{item.quantidade}</div>
                     <button
                       className="qty-btn"
-                      onClick={() => alterarQuantidade(item.produtoId, item.quantidade + 1)}
+                      onClick={async () => {
+                        try {
+                          setPendingProdutoId(item.produtoId)
+                          await alterarQuantidade(item.produtoId, item.quantidade + 1)
+                        } catch (e: any) {
+                          push({ variant: 'error', title: 'Carrinho', message: e?.message ?? 'Não foi possível alterar a quantidade.' })
+                        } finally {
+                          setPendingProdutoId(null)
+                        }
+                      }}
+                      disabled={pendingProdutoId === item.produtoId}
                       aria-label="Aumentar"
                     >
                       <Plus size={18} />
@@ -71,7 +92,17 @@ export default function CartMenu({ onClose }: Props) {
 
                     <button
                       className="trash"
-                      onClick={() => removeFromCart(item.produtoId)}
+                      onClick={async () => {
+                        try {
+                          setPendingProdutoId(item.produtoId)
+                          await removeFromCart(item.produtoId)
+                        } catch (e: any) {
+                          push({ variant: 'error', title: 'Carrinho', message: e?.message ?? 'Não foi possível remover o item.' })
+                        } finally {
+                          setPendingProdutoId(null)
+                        }
+                      }}
+                      disabled={pendingProdutoId === item.produtoId}
                       aria-label="Remover item"
                       title="Remover item"
                     >
